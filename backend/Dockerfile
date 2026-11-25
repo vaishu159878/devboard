@@ -1,4 +1,7 @@
-FROM dhi.io/golang:1-alpine AS builder
+# Override GO_IMAGE for local builds without a dhi.io login (see .env.example).
+ARG GO_IMAGE=dhi.io/golang:1-alpine
+
+FROM ${GO_IMAGE} AS builder
 
 WORKDIR /app
 
@@ -8,19 +11,16 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 go build -o devboard-backend .
 
-FROM dhi.io/golang:1-alpine
+FROM ${GO_IMAGE}
 
 WORKDIR /app
 
 COPY --from=builder /app/devboard-backend ./devboard-backend
 
-# Ensure binary is executable
 RUN chmod +x ./devboard-backend
 
-# DHI image runs as nonroot by default
-USER nonroot
+USER 65532:65532
 
 EXPOSE 8080
 
-# Use exec form for proper signal handling
 ENTRYPOINT ["./devboard-backend"]
